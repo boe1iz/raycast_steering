@@ -1,6 +1,7 @@
 class Ray {
   constructor(pos, angle) {
     this.pos = pos;
+    this.angle = angle;
     this.dir = p5.Vector.fromAngle(angle);
   }
 
@@ -8,6 +9,10 @@ class Ray {
     this.dir.x = x - this.pos.x;
     this.dir.y = y - this.pos.y;
     this.dir.normalize();
+  }
+
+  rotate(offset) {
+    this.dir = p5.Vector.fromAngle(this.angle + offset);
   }
 
   show() {

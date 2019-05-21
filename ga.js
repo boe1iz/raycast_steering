@@ -28,7 +28,7 @@ function pickOne() {
 
 function calculateFitness(target) {
   for (let particle of savedParticles) {
-    particle.calculateFitness(target);
+    particle.calculateFitness();
   }
 
   //Normalize all values

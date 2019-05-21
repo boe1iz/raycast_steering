@@ -1,3 +1,12 @@
+/// Bir nokta ile bir çizgi arasındaki mesafeyi hesapla
+function plDistance(p1, p2, x, y) {
+  const num = abs(
+    (p2.y - p1.y) * x - (p2.x - p1.x) * y + p2.x * p1.y - p2.y * p1.x
+  );
+  const den = p5.Vector.dist(p1, p2);
+  return num / den;
+}
+
 class Particle {
   constructor(brain) {
     this.dead = false;
@@ -6,12 +15,14 @@ class Particle {
     this.pos = createVector(start.x, start.y);
     this.vel = createVector();
     this.acc = createVector();
-    this.maxspeed = 5;
-    this.maxforce = 0.1;
-    this.sight = 50;
+    this.maxspeed = 4;
+    this.maxforce = 0.5;
+    this.sight = SIGHT;
     this.rays = [];
+    this.index = 0;
+    this.counter = 0;
 
-    for (let a = 0; a < 360; a += 45) {
+    for (let a = -45; a < 45; a += 5) {
       this.rays.push(new Ray(this.pos, radians(a)));
     }
 
@@ -36,13 +47,31 @@ class Particle {
       this.vel.add(this.acc);
       this.vel.limit(this.maxspeed);
       this.acc.set(0, 0);
+      this.counter++;
+      if (this.counter > LIFESPAN) {
+        this.dead = true;
+      }
+      for (let i = 0; i < this.rays.length; i++) {
+        this.rays[i].rotate(this.vel.heading());
+      }
     }
   }
 
-  check(target) {
-    const d = p5.Vector.dist(this.pos, target);
-    if (d < 10) {
-      this.finished = true;
+  check(checkpoints) {
+    if (!this.finished) {
+      this.goal = checkpoints[this.index];
+      const d = plDistance(this.goal.a, this.goal.b, this.pos.x, this.pos.y);
+      if (d < 5) {
+        //this.index++;
+        this.index = (this.index + 1) % checkpoints.length;
+        this.fitness++;
+        this.counter = 0;
+
+        //// Parkur tamamlandıysa tüm partikülleri öldür
+        // if (this.index == checkpoints.length - 1) {
+        //   this.finished = true;
+        // }
+      }
     }
   }
 
@@ -50,13 +79,8 @@ class Particle {
     this.brain.mutate(MUTATION_RATE);
   }
 
-  calculateFitness(target) {
-    if (this.finished) {
-      this.fitness = 1;
-    } else {
-      const d = p5.Vector.dist(this.pos, target);
-      this.fitness = constrain(1 / d, 0, 1);
-    }
+  calculateFitness() {
+    this.fitness = pow(2, this.fitness);
   }
 
   checkBounds() {
@@ -88,19 +112,22 @@ class Particle {
         }
       }
 
-      if (record < 2) {
+      if (record < 5) {
         this.dead = true;
       }
 
       inputs[i] = map(record, 0, 50, 1, 0);
 
-      if (closest) {
-        //stroke(255, 100);
-        //line(this.pos.x, this.pos.y, closest.x, closest.y);
-      }
+      /// Sensorleri en yakın engele göre ekranda göster
+      //   if (closest) {
+      //     stroke(255);
+      //     line(this.pos.x, this.pos.y, closest.x, closest.y);
+      //   }
     }
+
     const output = this.brain.predict(inputs);
-    const angle = map(output[0], 0, 1, 0, TWO_PI);
+    let angle = map(output[0], 0, 1, -PI, PI);
+    angle += this.vel.heading();
     const steering = p5.Vector.fromAngle(angle);
     steering.setMag(this.maxspeed);
     steering.sub(this.vel);
@@ -117,8 +144,15 @@ class Particle {
     rectMode(CENTER);
     rect(0, 0, 10, 5);
     pop();
-    for (let ray of this.rays) {
-      // ray.show();
-    }
+
+    /// Tüm sensörleri göster
+    // for (let ray of this.rays) {
+    //   ray.show();
+    // }
+
+    /// En yakın segmenti göster
+    // if (this.goal) {
+    //   this.goal.show();
+    // }
   }
 }
